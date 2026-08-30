@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>9-Week ML / MLE Study Dashboard</title>
+<style>
+:root {
+  --bg:#f5f7fb; --panel:#ffffff; --ink:#172033; --muted:#6b7280; --line:#e6eaf0;
+  --blue:#4f7cff; --blue-soft:#edf3ff; --green:#2e9d68; --green-soft:#eaf8f1;
+  --red:#d95757; --red-soft:#fff0f0; --amber:#c9891d; --amber-soft:#fff7e5;
+  --purple:#7c63d6; --purple-soft:#f2efff; --cyan:#2389a8; --cyan-soft:#eaf8fc;
+  --gray-soft:#f1f3f6; --shadow:0 12px 30px rgba(30,41,59,.08);
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:linear-gradient(180deg,#f7f9fd 0%,#f5f7fb 45%,#eef2f7 100%); color:var(--ink);
+  font-family:"Times New Roman","SimSun","宋体",serif;
+}
+button,input,select,textarea { font:inherit; }
+.app { max-width:1320px; margin:0 auto; padding:28px 22px 60px; }
+.topbar {
+  display:flex; justify-content:space-between; gap:18px; align-items:flex-start; background:rgba(255,255,255,.9);
+  backdrop-filter:blur(12px); border:1px solid rgba(226,232,240,.9); box-shadow:var(--shadow);
+  border-radius:24px; padding:24px 26px; position:sticky; top:14px; z-index:10;
+}
+.brand small { display:block; color:var(--blue); font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.brand h1 { margin:5px 0 6px; font-size:30px; line-height:1.1; }
+.brand p { margin:0; color:var(--muted); font-size:15px; }
+.actions { display:flex; flex-wrap:wrap; gap:9px; justify-content:flex-end; }
+.btn { border:1px solid var(--line); background:#fff; color:var(--ink); padding:9px 13px; border-radius:12px; cursor:pointer; box-shadow:0 2px 8px rgba(15,23,42,.03); }
+.btn:hover { border-color:#c8d3e5; }
+.btn.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+.notice { margin:18px 0 0; padding:12px 16px; border-radius:14px; background:var(--blue-soft); color:#3157a4; border:1px solid #dce8ff; display:none; }
+.nav { display:flex; gap:8px; margin:20px 0 16px; align-items:center; flex-wrap:wrap; }
+.tab { border:0; background:transparent; color:var(--muted); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700; }
+.tab.active { background:#fff; color:var(--ink); box-shadow:0 4px 16px rgba(15,23,42,.08); }
+.tab .count { display:inline-grid; place-items:center; min-width:20px; height:20px; padding:0 6px; margin-left:5px; border-radius:999px; background:var(--red-soft); color:var(--red); font-size:11px; }
+.date-wrap { margin-left:auto; display:flex; align-items:center; gap:8px; }
+.date-wrap input { border:1px solid var(--line); border-radius:11px; padding:8px 10px; background:#fff; }
+.hero-grid { display:grid; grid-template-columns:1.2fr .72fr .55fr; gap:16px; margin-bottom:16px; }
+.hero-card,.progress-card,.streak-card { background:var(--panel); border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow); }
+.hero-card { padding:24px; }
+.kicker { color:var(--muted); font-size:14px; }
+.hero-date { font-size:32px; font-weight:800; margin:4px 0 6px; }
+.hero-sub { color:var(--muted); line-height:1.45; }
+.progress-card { padding:22px; display:flex; gap:18px; align-items:center; }
+.ring { --p:0; width:96px; height:96px; border-radius:50%; background:conic-gradient(var(--green) calc(var(--p)*1%), #edf0f4 0); position:relative; flex:0 0 auto; }
+.ring:after { content:""; position:absolute; inset:10px; background:#fff; border-radius:50%; }
+.ring .num { position:absolute; inset:0; z-index:1; display:grid; place-items:center; font-size:24px; font-weight:800; }
+.progress-info h3 { margin:0 0 6px; }
+.progress-info p { margin:0; color:var(--muted); font-size:14px; }
+.statrow { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.pill { padding:6px 9px; background:var(--gray-soft); border-radius:999px; font-size:13px; color:#4b5563; }
+.streak-card { padding:20px; display:flex; flex-direction:column; justify-content:center; }
+.streak-icon { font-size:24px; }
+.streak-num { font-size:34px; font-weight:900; line-height:1; margin:8px 0 5px; }
+.streak-label { font-weight:700; }
+.streak-sub { color:var(--muted); font-size:12px; margin-top:7px; }
+.task-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.task-card { background:#fff; border:1px solid var(--line); border-radius:20px; padding:19px; box-shadow:0 8px 22px rgba(15,23,42,.05); transition:.2s ease; position:relative; overflow:hidden; }
+.task-card:before { content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:#cbd5e1; }
+.task-card.done:before { background:var(--green); } .task-card.inprogress:before { background:var(--amber); } .task-card.failed:before { background:var(--red); }
+.task-card.done { background:linear-gradient(180deg,#fff,#f8fffb); } .task-card.failed { background:linear-gradient(180deg,#fff,#fff8f8); }
+.task-card.persistent { border-color:#dce5ff; }
+.task-head { display:flex; gap:10px; justify-content:space-between; align-items:flex-start; }
+.task-title { font-weight:800; font-size:18px; }
+.task-label { font-size:12px; color:var(--muted); margin-top:2px; }
+.status { border:1px solid var(--line); border-radius:10px; padding:7px 9px; background:#fff; min-width:94px; }
+.window-note { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin:12px 0 0; color:#526987; font-size:12px; }
+.window-chip { padding:4px 8px; border-radius:999px; background:var(--blue-soft); color:#3f64b6; font-weight:700; }
+.task-body { margin:15px 0 13px; white-space:pre-line; line-height:1.55; font-size:15px; }
+.accept { border-top:1px dashed var(--line); padding-top:12px; color:#475569; line-height:1.5; font-size:14px; }
+.accept b { color:#273449; }
+.meta-row { margin-top:16px; background:#fff; border:1px solid var(--line); border-radius:20px; padding:18px; display:grid; grid-template-columns:1fr 1fr 2fr; gap:14px; box-shadow:0 8px 22px rgba(15,23,42,.04); }
+.field label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:700; }
+.field input,.field textarea { width:100%; border:1px solid var(--line); border-radius:11px; padding:10px 11px; background:#fbfcfe; }
+.field textarea { min-height:70px; resize:vertical; }
+.week-list,.all-list,.backlog-list,.stats-list { display:none; }
+.week-summary,.panel { background:#fff; border:1px solid var(--line); border-radius:20px; padding:18px; box-shadow:var(--shadow); }
+.week-header,.panel-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:12px; }
+.week-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:9px; }
+.day-mini { border:1px solid var(--line); border-radius:14px; padding:12px; background:#fbfcfe; cursor:pointer; }
+.day-mini:hover { border-color:#cfd8e8; background:#fff; } .day-mini.active { outline:2px solid #a9c2ff; background:#f7faff; }
+.day-mini .d { font-weight:800; font-size:16px; } .day-mini .w { color:var(--muted); font-size:12px; margin-top:2px; }
+.mini-bar { height:6px; background:#e9edf2; border-radius:999px; margin-top:12px; overflow:hidden; }
+.mini-bar span { display:block; height:100%; background:var(--green); border-radius:999px; }
+.all-grid { display:grid; gap:10px; }
+.all-day { background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px 16px; display:grid; grid-template-columns:120px 110px 1fr 90px; gap:14px; align-items:center; cursor:pointer; }
+.all-day:hover { border-color:#cbd5e1; } .all-day .date { font-weight:800; } .all-day .summary { color:#475569; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.badge { padding:5px 8px; border-radius:999px; font-size:12px; background:var(--gray-soft); text-align:center; }
+.backlog-items { display:grid; gap:11px; }
+.backlog-item { border:1px solid var(--line); border-radius:16px; padding:15px; display:grid; grid-template-columns:120px 1fr 120px auto; gap:14px; align-items:center; background:#fff; }
+.backlog-item .module { font-weight:800; } .backlog-item .task { line-height:1.45; } .backlog-item .due { color:var(--red); font-size:13px; }
+.backlog-empty { padding:34px; text-align:center; color:var(--muted); background:var(--green-soft); border-radius:16px; }
+.stats-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+.kpi { background:#fff; border:1px solid var(--line); border-radius:18px; padding:16px; box-shadow:0 8px 22px rgba(15,23,42,.04); }
+.kpi .v { font-size:28px; font-weight:900; margin-top:5px; } .kpi .l { color:var(--muted); font-size:12px; }
+.chart { display:grid; gap:12px; margin-top:12px; }
+.chart-row { display:grid; grid-template-columns:75px 1fr 90px; gap:12px; align-items:center; }
+.chart-label { font-weight:800; }
+.bar-stack { display:grid; gap:6px; }
+.barline { height:11px; border-radius:999px; background:#edf0f4; overflow:hidden; position:relative; }
+.barline span { display:block; height:100%; border-radius:999px; }
+.barline.completion span { background:linear-gradient(90deg,var(--blue),#7d9fff); }
+.barline.hours span { background:linear-gradient(90deg,var(--green),#67bc90); }
+.chart-meta { font-size:12px; color:var(--muted); text-align:right; }
+.legend { display:flex; gap:14px; flex-wrap:wrap; margin:6px 0 12px; color:var(--muted); font-size:12px; }
+.legend i { width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:5px; }
+.module-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:16px; }
+.module-box { border:1px solid var(--line); border-radius:14px; padding:13px; background:#fbfcfe; }
+.module-box .name { font-weight:800; } .module-box .pct { font-size:24px; font-weight:900; margin-top:5px; }
+footer { margin-top:24px; text-align:center; color:#8a94a6; font-size:13px; }
+@media (max-width:1000px) { .hero-grid { grid-template-columns:1fr 1fr; } .streak-card { grid-column:1/-1; flex-direction:row; align-items:center; gap:16px; } .stats-kpis,.module-grid { grid-template-columns:repeat(2,1fr); } }
+@media (max-width:850px) {
+  .topbar { position:static; flex-direction:column; } .actions { justify-content:flex-start; }
+  .hero-grid,.task-grid { grid-template-columns:1fr; } .streak-card { grid-column:auto; }
+  .week-days { grid-template-columns:repeat(2,minmax(0,1fr)); } .meta-row { grid-template-columns:1fr; }
+  .all-day,.backlog-item { grid-template-columns:1fr; } .date-wrap { margin-left:0; width:100%; }
+  .chart-row { grid-template-columns:60px 1fr; } .chart-meta { grid-column:2; text-align:left; }
+}
+
+/* ===== Cloud sync / Auth ===== */
+.cloud-strip{
+  margin:14px 0 0; display:flex; align-items:center; justify-content:space-between;
+  gap:12px; flex-wrap:wrap; padding:10px 14px; border:1px solid var(--line);
+  border-radius:14px; background:rgba(255,255,255,.82); color:var(--muted); font-size:13px;
+}
+.cloud-left,.cloud-right{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.sync-dot{width:9px;height:9px;border-radius:50%;background:#94a3b8;display:inline-block}
+.sync-dot.ok{background:var(--green)} .sync-dot.busy{background:var(--amber)} .sync-dot.err{background:var(--red)}
+.user-email{font-weight:700;color:var(--ink)}
+.auth-overlay{
+  position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.48);backdrop-filter:blur(7px);
+  display:none;align-items:center;justify-content:center;padding:22px;
+}
+.auth-card{
+  width:min(440px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;
+  box-shadow:0 28px 80px rgba(15,23,42,.28);padding:26px;
+}
+.auth-card h2{margin:4px 0 7px;font-size:27px}.auth-card p{color:var(--muted);line-height:1.55;margin:0 0 18px}
+.auth-field{margin:12px 0}.auth-field label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-bottom:6px}
+.auth-field input{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fbfcfe}
+.auth-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.auth-msg{min-height:20px;margin-top:12px;font-size:13px;color:var(--muted)}
+.auth-msg.error{color:var(--red)} .auth-msg.ok{color:var(--green)}
+.setup-box{padding:12px 14px;background:var(--amber-soft);border:1px solid #f3deb2;border-radius:13px;color:#76591d;font-size:13px;line-height:1.55;margin-bottom:14px}
+.local-badge{padding:5px 8px;border-radius:999px;background:var(--gray-soft);color:#64748b;font-weight:700}
+@media(max-width:600px){.auth-actions{grid-template-columns:1fr}.cloud-strip{align-items:flex-start}}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <small>9-Week ML / MLE Roadmap</small>
+      <h1>学习 Dashboard</h1>
+      <p>CS61B · CS229 · ML/PyTorch · LeetCode Hot100</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="exportBtn">导出进度</button>
+      <button class="btn" id="resetBtn">重置当天</button>
+      <button class="btn primary" id="todayBtn">回到今天</button>
+    </div>
+  </header>
+
+  <div class="cloud-strip" id="cloudStrip">
+    <div class="cloud-left">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncText">正在初始化云端同步…</span>
+    </div>
+    <div class="cloud-right">
+      <span class="user-email" id="userEmail"></span>
+      <button class="btn" id="loginBtn">登录 / 云同步</button>
+      <button class="btn" id="logoutBtn" style="display:none">退出登录</button>
+    </div>
+  </div>
+  <div id="notice" class="notice"></div>
+
+  <nav class="nav">
+    <button class="tab active" data-view="today">今天</button>
+    <button class="tab" data-view="week">本周</button>
+    <button class="tab" data-view="backlog">Backlog <span class="count" id="backlogCount">0</span></button>
+    <button class="tab" data-view="stats">每周统计</button>
+    <button class="tab" data-view="all">全部计划</button>
+    <div class="date-wrap">
+      <span style="color:var(--muted);font-size:13px;">查看日期</span>
+      <input type="date" id="datePicker" min="2026-09-01" max="2026-11-01" />
+    </div>
+  </nav>
+
+  <main id="todayView">
+    <section class="hero-grid">
+      <div class="hero-card">
+        <div class="kicker" id="weekLabel"></div>
+        <div class="hero-date" id="heroDate"></div>
+        <div class="hero-sub" id="heroSub"></div>
+      </div>
+      <div class="progress-card">
+        <div class="ring" id="ring"><div class="num" id="progressNum">0%</div></div>
+        <div class="progress-info">
+          <h3>今日到期任务完成度</h3>
+          <p id="progressText">0 / 0 项完成</p>
+          <div class="statrow"><span class="pill" id="planHoursPill">计划 0h</span><span class="pill" id="remainPill">剩余 0 项</span></div>
+        </div>
+      </div>
+      <div class="streak-card">
+        <div class="streak-icon">🔥</div>
+        <div><div class="streak-num" id="streakNum">0</div><div class="streak-label">连续打卡天数</div><div class="streak-sub" id="streakSub">最长连续 0 天</div></div>
+      </div>
+    </section>
+    <section class="task-grid" id="taskGrid"></section>
+    <section class="meta-row">
+      <div class="field"><label>计划总时长</label><input id="plannedHours" disabled /></div>
+      <div class="field"><label>实际时长（小时）</label><input id="actualHours" type="number" min="0" step="0.25" placeholder="例如 3.5" /></div>
+      <div class="field"><label>当天备注</label><textarea id="dailyNote" placeholder="记录卡住点、补做事项、明天要注意什么…"></textarea></div>
+    </section>
+  </main>
+
+  <section class="week-list" id="weekView"><div class="week-summary"><div class="week-header"><div><div class="kicker">WEEK OVERVIEW</div><h2 id="weekTitle" style="margin:4px 0 0;"></h2></div><span class="pill" id="weekProgress"></span></div><div class="week-days" id="weekDays"></div></div></section>
+
+  <section class="backlog-list" id="backlogView"><div class="panel"><div class="panel-head"><div><div class="kicker">AUTO BACKLOG</div><h2 style="margin:4px 0 0;">逾期未完成任务</h2></div><span class="pill" id="backlogSummary"></span></div><p style="color:var(--muted);margin-top:0;">CS61B、LeetCode 必做，以及超过建议周期仍未完成的 CS229 / ML-PyTorch 会自动进入这里。LeetCode 加做不进入 Backlog。</p><div class="backlog-items" id="backlogItems"></div></div></section>
+
+  <section class="stats-list" id="statsView">
+    <div class="stats-kpis">
+      <div class="kpi"><div class="l">当前连续打卡</div><div class="v" id="kpiStreak">0 天</div></div>
+      <div class="kpi"><div class="l">最长连续打卡</div><div class="v" id="kpiLongest">0 天</div></div>
+      <div class="kpi"><div class="l">累计实际学习</div><div class="v" id="kpiHours">0 h</div></div>
+      <div class="kpi"><div class="l">当前 Backlog</div><div class="v" id="kpiBacklog">0 项</div></div>
+    </div>
+    <div class="panel"><div class="panel-head"><div><div class="kicker">9-WEEK TREND</div><h2 style="margin:4px 0 0;">每周完成率与学习时长</h2></div></div><div class="legend"><span><i style="background:var(--blue)"></i>核心任务完成率</span><span><i style="background:var(--green)"></i>实际 / 计划学习时长</span></div><div class="chart" id="weekChart"></div><div class="module-grid" id="moduleGrid"></div></div>
+  </section>
+
+  <section class="all-list" id="allView"><div class="all-grid" id="allGrid"></div></section>
+  <footer>云端版：登录后进度会同步到 Supabase；本机 localStorage 只作为离线缓存。CS229 与 ML/PyTorch 采用持续任务时间窗。</footer>
+</div>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="kicker">CLOUD SYNC</div>
+    <h2>登录学习 Dashboard</h2>
+    <p>使用同一个邮箱账号登录后，你在不同电脑上的任务状态、学习时长、备注、Backlog 与连续打卡都会同步。</p>
+    <div class="setup-box" id="setupBox" style="display:none">
+      还没有配置 Supabase。请先按仓库里的 <b>README.md</b> 创建项目、运行 <b>supabase.sql</b>，然后把 Project URL 与 anon / publishable key 填进 <b>config.js</b>。
+    </div>
+    <div id="authForm">
+      <div class="auth-field">
+        <label>Email</label>
+        <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input id="authPassword" type="password" autocomplete="current-password" placeholder="至少 6 个字符">
+      </div>
+      <div class="auth-actions">
+        <button class="btn primary" id="signInBtn">登录</button>
+        <button class="btn" id="signUpBtn">创建账号</button>
+      </div>
+    </div>
+    <div class="auth-msg" id="authMsg"></div>
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <span class="local-badge">本地缓存仍会保留</span>
+      <button class="btn" id="localPreviewBtn">先本地预览</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+const PLAN = [{"date":"2026-09-01","week":"第1周","weekday":"周二","cs61b":{"task":"课：L3 Lists & References, Recursion, and Lists\n作业：Lab 2 Debugging I：开始","check":"能画出引用/链表指向；完成 Lab 2 前半","status":"未开始"},"cs229":{"task":"L4 Exponential Family & Generalized Linear Models","check":"Main Notes §3；能解释 exponential family → GLM 的建模思路；写 3 点笔记","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"复写 Two Sum；Group Anagrams","status":"未开始"},"lcExtra":{"task":"Longest Consecutive Sequence","status":"未开始"},"plannedHours":4,"actualHours":"","note":"前两题按“复写/测速”处理，不看旧代码"},{"date":"2026-09-02","week":"第1周","weekday":"周三","cs61b":{"task":"课：L4 Lists & SLLists\n作业：Lab 2 Debugging I：完成","check":"自己写出 SLList 的 addFirst/addLast/get","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"完成 ConvBlock：Conv + BN + ReLU；观察 BN 的 train/eval 行为","check":"独立实现 Conv2d→BN→ReLU；用随机输入验证 shape；同一 batch 对比 model.train()/eval() 输出，并能解释 running mean/var","status":"进行中"},"lcCore":{"task":"Move Zeroes","status":"未开始"},"lcExtra":{"task":"Container With Most Water（复写）","status":"未开始"},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-09-03","week":"第1周","weekday":"周四","cs61b":{"task":"课：L5 Lists II: DLLists and Arrays\n作业：Project 0: 2048 — 阅读 spec + 跑通 skeleton","check":"理解 sentinel / doubly linked list；项目能运行测试","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"3Sum","status":"未开始"},"lcExtra":{"task":"Product of Array Except Self","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-09-04","week":"第1周","weekday":"周五","cs61b":{"task":"课：L6 Testing\n作业：Project 0: 2048 — 实现核心逻辑","check":"至少完成一个核心 method + 对应测试","status":"未开始"},"cs229":{"task":"L5 Gaussian Discriminant Analysis & Naive Bayes","check":"Main Notes §4.1；做一张 GDA vs Logistic Regression 对比表","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Longest Substring Without Repeating Characters","status":"未开始"},"lcExtra":{"task":"Find All Anagrams in a String","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-09-05","week":"第1周","weekday":"周六","cs61b":{"task":"课：L7 Lists IV: Arrays and Lists\n作业：Project 0: 2048 — 完成 + 自测","check":"Project 0 本地测试通过；总结 3 个 bug","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Subarray Sum Equals K","status":"未开始"},"lcExtra":{"task":"Minimum Window Substring","status":"未开始"},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-09-06","week":"第1周","weekday":"周日","cs61b":{"task":"课：本周复盘：L3–L7\n作业：Project 0 buffer；错题整理","check":"不看笔记口述 Lists/Arrays/Testing；补齐未完成项","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"Logistic Regression from scratch + Gradient Descent（NumPy）","check":"实现 sigmoid/BCE/梯度/参数更新；在 toy 或 sklearn 数据上训练；与 sklearn LogisticRegression 的指标做一次对比","status":"未开始"},"lcCore":{"task":"重做本周最卡的 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-09-07","week":"第2周","weekday":"周一","cs61b":{"task":"课：L8 Inheritance I: Interface and Implementation Inheritance\n作业：Lab 3 Debugging II：开始","check":"能解释 interface / implements / method override","status":"未开始"},"cs229":{"task":"L6 Naive Bayes & Laplace Smoothing","check":"Main Notes §4.2；写清 conditional independence 与 Laplace smoothing","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Reverse Linked List","status":"未开始"},"lcExtra":{"task":"Linked List Cycle","status":"未开始"},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-09-08","week":"第2周","weekday":"周二","cs61b":{"task":"课：L9 Inheritance II: Extends, Casting, Higher Order Functions\n作业：Lab 3 Debugging II：完成","check":"写一个简单继承/向上转型例子；完成 Lab 3","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"Naive Bayes + Laplace Smoothing from scratch","check":"实现 log prior + log likelihood + Laplace smoothing；全程用 log-space；与 sklearn Naive Bayes 做结果对照","status":"未开始"},"lcCore":{"task":"Merge Two Sorted Lists","status":"未开始"},"lcExtra":{"task":"Intersection of Two Linked Lists","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-09-09","week":"第2周","weekday":"周三","cs61b":{"task":"课：L10 Inheritance III: Subtype Polymorphism, Comparators, Comparable\n作业：Project 1A LinkedListDeque61B：读 spec + 设计","check":"画出 deque 节点结构；列出 public API","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Palindrome Linked List","status":"未开始"},"lcExtra":{"task":"Linked List Cycle II","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-09-10","week":"第2周","weekday":"周四","cs61b":{"task":"课：L11 Inheritance IV / Object Methods（按课表）\n作业：Project 1A：实现核心 deque 操作","check":"addFirst/addLast/removeFirst/removeLast 基本可用","status":"未开始"},"cs229":{"task":"L7 Kernels","check":"Main Notes §5；解释 kernel trick / feature mapping 的直觉","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Add Two Numbers","status":"未开始"},"lcExtra":{"task":"Remove Nth Node From End of List","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-09-11","week":"第2周","weekday":"周五","cs61b":{"task":"课：L12 Asymptotics I\n作业：Project 1A：测试 + 边界情况","check":"能给常见 list/deque 操作写出 Big-O","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Swap Nodes in Pairs","status":"未开始"},"lcExtra":{"task":"Copy List with Random Pointer","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-09-12","week":"第2周","weekday":"周六","cs61b":{"task":"课：L8–L12 小结\n作业：Project 1A：收尾；原课 HW1（可选）","check":"Project 1A 通过主要测试；写 5 行复杂度总结","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Sort List；Merge k Sorted Lists","status":"未开始"},"lcExtra":{"task":"LRU Cache","status":"未开始"},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-09-13","week":"第2周","weekday":"周日","cs61b":{"task":"课：轻量复盘\n作业：补 Lab/Project；整理继承与复杂度笔记","check":"独立讲 10 分钟：inheritance + polymorphism + Big-O","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"手写 ResNet BasicBlock","check":"实现 2×Conv-BN + residual；支持 identity / projection shortcut；测试 stride=1 与 stride=2 的输出 shape","status":"未开始"},"lcCore":{"task":"重做本周最卡的 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":3.3,"actualHours":"","note":""},{"date":"2026-09-14","week":"第3周","weekday":"周一","cs61b":{"task":"课：L13（课表中的渐进分析/建模延伸）\n作业：Lab 4 Git","check":"完成常用 git add/commit/status/log/branch 流程","status":"未开始"},"cs229":{"task":"L8 Neural Networks 1","check":"Main Notes §7.1–7.2；画 forward pass，并解释 activation 的作用","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Valid Parentheses","status":"未开始"},"lcExtra":{"task":"Min Stack","status":"未开始"},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-09-15","week":"第3周","weekday":"周二","cs61b":{"task":"课：L14 Disjoint Sets\n作业：Lab 5 Disjoint Sets：开始","check":"能手写 quick-find/quick-union/weighted union 思路","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"2-layer MLP 手推 Backprop + Gradient Check","check":"手写 forward/backward 得到 dW/db；用 finite difference 或 PyTorch autograd 对照；记录最大梯度误差","status":"未开始"},"lcCore":{"task":"Daily Temperatures","status":"未开始"},"lcExtra":{"task":"Decode String","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-09-16","week":"第3周","weekday":"周三","cs61b":{"task":"课：L15 Asymptotics II\n作业：Lab 5 Disjoint Sets：完成","check":"能分析嵌套循环、递归或数据结构操作复杂度","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Largest Rectangle in Histogram","status":"未开始"},"lcExtra":{"task":"Trapping Rain Water","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-09-17","week":"第3周","weekday":"周四","cs61b":{"task":"课：L16 ADTs, Maps, BSTs\n作业：Project 1B ArrayDeque61B：读 spec + 设计","check":"区分 ADT 与实现；画 BST 插入/查找过程","status":"未开始"},"cs229":{"task":"L9 Neural Networks 2 — Backprop","check":"Main Notes §7.3；手推一层 backprop 的 chain rule","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Binary Tree Inorder Traversal","status":"未开始"},"lcExtra":{"task":"Maximum Depth of Binary Tree","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-09-18","week":"第3周","weekday":"周五","cs61b":{"task":"课：L17 B-Trees (2-3, 2-3-4 Trees)\n作业：Project 1B：实现 resize / indexing 核心逻辑","check":"解释为什么数组 deque 需要循环下标与扩缩容","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Invert Binary Tree","status":"未开始"},"lcExtra":{"task":"Symmetric Tree","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-09-19","week":"第3周","weekday":"周六","cs61b":{"task":"课：L13–L17 小结\n作业：Project 1B：完成 + 测试","check":"ArrayDeque 主要测试通过；写下 3 个 off-by-one 风险点","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Diameter of Binary Tree；Binary Tree Level Order Traversal","status":"未开始"},"lcExtra":{"task":"Convert Sorted Array to Binary Search Tree","status":"未开始"},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-09-20","week":"第3周","weekday":"周日","cs61b":{"task":"课：轻量复盘\n作业：补 Project 1B；错题复写","check":"从空白纸画 Union-Find、BST、B-Tree 关键结构","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"SGD / Momentum / Adam from scratch 对比","check":"自己维护 optimizer state 并实现三种 update；在同一小模型上记录 loss 曲线/表格；能解释 momentum 与 Adam 的状态变量","status":"未开始"},"lcCore":{"task":"重做本周最卡的 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-09-21","week":"第4周","weekday":"周一","cs61b":{"task":"课：L18 Red Black Trees\n作业：Lab 7 LLRBs","check":"理解红黑树如何模拟 2-3 tree；完成 Lab 7","status":"未开始"},"cs229":{"task":"L10 Bias–Variance & Regularization","check":"Main Notes §8；整理 bias / variance / regularization 关系","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Validate Binary Search Tree","status":"未开始"},"lcExtra":{"task":"Kth Smallest Element in a BST","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-09-22","week":"第4周","weekday":"周二","cs61b":{"task":"课：L19 Hashing\n作业：Lab 8 HashMaps：开始","check":"能解释 hashCode、bucket、collision、load factor","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"AverageMeter + checkpoint save/load/resume","check":"保存 model/optimizer/epoch/best_metric；从 checkpoint 恢复并继续训练；验证恢复前后 epoch 与 metric 连贯","status":"未开始"},"lcCore":{"task":"Binary Tree Right Side View","status":"未开始"},"lcExtra":{"task":"Flatten Binary Tree to Linked List","status":"未开始"},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-09-23","week":"第4周","weekday":"周三","cs61b":{"task":"课：L20 Hashing II\n作业：Lab 8 HashMaps：完成","check":"自己写出简化版 put/get 的伪代码","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Construct Binary Tree from Preorder and Inorder Traversal","status":"未开始"},"lcExtra":{"task":"Path Sum III","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-09-24","week":"第4周","weekday":"周四","cs61b":{"task":"课：L21 Heaps and Priority Queues\n作业：Project 1C Deque61B Enhancements：开始","check":"会用数组表示 heap；说清 swim/sink","status":"未开始"},"cs229":{"task":"L11 Feature / Model Selection & ML Advice","check":"Main Notes §9；输出 1 页 model selection / debugging checklist","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Lowest Common Ancestor of a Binary Tree","status":"未开始"},"lcExtra":{"task":"Binary Tree Maximum Path Sum","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-09-25","week":"第4周","weekday":"周五","cs61b":{"task":"课：L22 Tree and Graph Traversals\n作业：Project 1C：实现 enhancement + 测试","check":"能手写 DFS/BFS 递归与 queue 模板","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Kth Largest Element in an Array","status":"未开始"},"lcExtra":{"task":"Top K Frequent Elements","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-09-26","week":"第4周","weekday":"周六","cs61b":{"task":"课：L18–L22 小结\n作业：Project 1C：收尾；原课 HW2（可选）","check":"Project 1C 通过主要测试；写 HashMap/Heap/BFS 对照表","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Find Median from Data Stream","status":"未开始"},"lcExtra":{"task":"Search a 2D Matrix II","status":"未开始"},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-09-27","week":"第4周","weekday":"周日","cs61b":{"task":"课：轻量复盘\n作业：补 Lab/Project；树与堆错题复写","check":"不看笔记写 BST/Heap/BFS 三个模板","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"Early Stopping + LR Scheduler + Best Checkpoint","check":"实现 patience；接入 Step/Cosine/ReduceLROnPlateau 任一 scheduler；记录 lr history，并确保最终加载 best model","status":"未开始"},"lcCore":{"task":"重做本周最卡的 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-09-28","week":"第5周","weekday":"周一","cs61b":{"task":"课：L23 Graph Traversals and Implementations\n作业：Graph API 小练习 / 课后代码","check":"能用 adjacency list 表示图并写 visited","status":"未开始"},"cs229":{"task":"L12 K-Means, GMM & Expectation Maximization","check":"Main Notes §10, §11.1–11.2；对比 K-Means vs GMM，写 EM 的 E/M 两步","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Number of Islands","status":"未开始"},"lcExtra":{"task":"Rotting Oranges","status":"未开始"},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-09-29","week":"第5周","weekday":"周二","cs61b":{"task":"课：L24 Shortest Paths\n作业：最短路伪代码整理","check":"手写 Dijkstra 关键步骤并解释 priority queue 作用","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"K-Means from scratch + 可视化","check":"实现初始化→assignment→update→convergence；画聚类结果；与 sklearn KMeans 的 inertia/结果做一次对比","status":"未开始"},"lcCore":{"task":"Course Schedule","status":"未开始"},"lcExtra":{"task":"Palindrome Partitioning","status":"未开始"},"plannedHours":4.3,"actualHours":"","note":""},{"date":"2026-09-30","week":"第5周","weekday":"周三","cs61b":{"task":"课：L25 Minimum Spanning Trees\n作业：MST 对比练习","check":"对比 Prim / Kruskal；知道 Union-Find 在 Kruskal 中的作用","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Implement Trie (Prefix Tree)","status":"未开始"},"lcExtra":{"task":"N-Queens","status":"未开始"},"plannedHours":2.5,"actualHours":"","note":""},{"date":"2026-10-01","week":"第5周","weekday":"周四","cs61b":{"task":"课：L26 Directed Acyclic Graphs\n作业：Project 2A：读 spec + 建项目结构","check":"会解释拓扑排序适用条件","status":"未开始"},"cs229":{"task":"L13 GMM — EM","check":"Main Notes §11.2–11.4；能解释 responsibility 与 log-likelihood","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Permutations","status":"未开始"},"lcExtra":{"task":"Subsets","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-02","week":"第5周","weekday":"周五","cs61b":{"task":"课：L27 Software Engineering I\n作业：Project 2A：实现第一个可测试模块","check":"项目能跑；至少有 1 个模块和测试","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Combination Sum","status":"未开始"},"lcExtra":{"task":"Generate Parentheses","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-10-03","week":"第5周","weekday":"周六","cs61b":{"task":"课：L23–L27 小结\n作业：Project 2A：继续推进","check":"完成一个清晰 milestone；提交一次干净 commit","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Word Search","status":"未开始"},"lcExtra":{"task":"Letter Combinations of a Phone Number","status":"未开始"},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-10-04","week":"第5周","weekday":"周日","cs61b":{"task":"课：轻量复盘\n作业：补 Graph/Project 2A","check":"白板写 BFS / DFS / topo sort / Dijkstra 框架","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"GMM + EM from scratch（可用 diagonal covariance）","check":"实现 responsibility 的 E-step 与 π/μ/σ 的 M-step；记录 log-likelihood，确认总体不下降；可视化 cluster","status":"未开始"},"lcCore":{"task":"重做本周最卡的 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-10-05","week":"第6周","weekday":"周一","cs61b":{"task":"课：L28 Prefix Operations and Tries\n作业：Trie 小实现 / Project 2A","check":"实现 insert/search/prefix 三个接口","status":"未开始"},"cs229":{"task":"L14 Factor Analysis / PCA","check":"Main Notes §12–13；写 PCA vs Factor Analysis 对比","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Search Insert Position","status":"未开始"},"lcExtra":{"task":"Search a 2D Matrix","status":"未开始"},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-10-06","week":"第6周","weekday":"周二","cs61b":{"task":"课：L29 Sorting I: Selection Sort, Heap Sort\n作业：排序实现练习","check":"能从空白写 selection sort / heap sort 思路","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"PCA from scratch + sklearn 对比","check":"完成中心化→eig/SVD→projection→reconstruction；输出 explained variance；与 sklearn PCA 对照","status":"未开始"},"lcCore":{"task":"Search in Rotated Sorted Array","status":"未开始"},"lcExtra":{"task":"Find Minimum in Rotated Sorted Array","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-07","week":"第6周","weekday":"周三","cs61b":{"task":"课：L30 Sorting II: Merge Sort and Insertion Sort\n作业：排序复杂度表","check":"整理 stable/in-place/time/space 四列对比","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Find First and Last Position of Element in Sorted Array","status":"未开始"},"lcExtra":{"task":"Median of Two Sorted Arrays","status":"未开始"},"plannedHours":2.5,"actualHours":"","note":""},{"date":"2026-10-08","week":"第6周","weekday":"周四","cs61b":{"task":"课：L31 Software Engineering II\n作业：Project 2A：整合 + 测试","check":"完成主要功能整合；补 README/说明","status":"未开始"},"cs229":{"task":"L15 PCA / ICA","check":"Main Notes §13；解释 PCA objective 与 ICA 的核心直觉","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Maximum Subarray","status":"未开始"},"lcExtra":{"task":"Merge Intervals","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-09","week":"第6周","weekday":"周五","cs61b":{"task":"课：L32 Sorting III: Quicksort\n作业：Project 2A：收尾","check":"会解释 partition；Project 2A 达到可提交状态","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Rotate Array","status":"未开始"},"lcExtra":{"task":"First Missing Positive","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-10-10","week":"第6周","weekday":"周六","cs61b":{"task":"课：L28–L32 小结\n作业：Project 2B/2C：读 spec + 拆 milestone；原课 HW3（可选）","check":"列出 Project 2B/2C TODO；排序表完整","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Set Matrix Zeroes；Spiral Matrix","status":"未开始"},"lcExtra":{"task":"Rotate Image","status":"未开始"},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-10-11","week":"第6周","weekday":"周日","cs61b":{"task":"课：轻量复盘\n作业：补 Project 2；二分/排序错题复写","check":"不看答案写 binary search + quicksort partition 模板","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"统一 Evaluation 模块：分类 + 回归","check":"统一 dict 接口输出 Accuracy/F1/AUC/LogLoss 与 MAE/RMSE/Pearson/Spearman；补 2–3 个边界 case 测试","status":"未开始"},"lcCore":{"task":"重做本周最卡的 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":3.3,"actualHours":"","note":""},{"date":"2026-10-12","week":"第7周","weekday":"周一","cs61b":{"task":"课：L33 Sorting IV（按课表）\n作业：Project 2B/2C：milestone 1","check":"完成一个可独立测试的功能块","status":"未开始"},"cs229":{"task":"L16 Self-Supervised Learning","check":"Main Notes §14；总结 pretext task / representation learning 的例子","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Sort Colors","status":"未开始"},"lcExtra":{"task":"Next Permutation","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-13","week":"第7周","weekday":"周二","cs61b":{"task":"课：L34 Software Engineering III\n作业：Project 2B/2C：milestone 2","check":"重构一个方法/类，减少重复代码","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"LayerNorm from scratch","check":"按最后一维计算 mean/var，加入可学习 γ/β；与 torch.nn.LayerNorm 输出做数值对比","status":"未开始"},"lcCore":{"task":"Majority Element","status":"未开始"},"lcExtra":{"task":"Single Number","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-14","week":"第7周","weekday":"周三","cs61b":{"task":"课：L35 Sorting V: More Quicksort, Radix Sorts\n作业：Project 2B/2C：继续","check":"说清 comparison sort 与 radix sort 的区别","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Jump Game","status":"未开始"},"lcExtra":{"task":"Jump Game II","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-10-15","week":"第7周","weekday":"周四","cs61b":{"task":"课：L36 Sorting VI: Radix vs Comparison Sorting\n作业：Project 2B/2C：测试","check":"项目核心路径通过测试；整理失败 case","status":"未开始"},"cs229":{"task":"L17 RL Basics: Value Iteration & Policy Iteration","check":"Main Notes §15；写 Bellman update，并区分 value / policy iteration","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Partition Labels","status":"未开始"},"lcExtra":{"task":"Pascal's Triangle","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-16","week":"第7周","weekday":"周五","cs61b":{"task":"课：L37 Software Engineering IV\n作业：Project 2B/2C：收尾","check":"Project 2 达到可提交状态；README 写清设计","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Best Time to Buy and Sell Stock","status":"未开始"},"lcExtra":{"task":"Climbing Stairs","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-10-17","week":"第7周","weekday":"周六","cs61b":{"task":"课：L33–L37 小结\n作业：Project 2 buffer；Lab 9（Project 3 setup）可选","check":"Project 2 补齐；写 sorting 总结卡片","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"House Robber；Perfect Squares","status":"未开始"},"lcExtra":{"task":"Coin Change","status":"未开始"},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-10-18","week":"第7周","weekday":"周日","cs61b":{"task":"课：轻量复盘\n作业：补 Project 2；排序/贪心错题复写","check":"口述 15 分钟：sorting + software engineering lessons","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"Self-Attention from scratch","check":"实现 Q/K/V、scaled dot-product、softmax、mask；标清每一步 tensor shape，并写最小 shape test","status":"未开始"},"lcCore":{"task":"重做本周最卡的 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-10-19","week":"第8周","weekday":"周一","cs61b":{"task":"课：L38 Compression\n作业：压缩概念小结","check":"能解释为什么编码/压缩与数据表示有关","status":"未开始"},"cs229":{"task":"L18 Societal Impact of ML","check":"整理 3 个 ML 风险/公平性问题 + 1 段自己的理解","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Word Break","status":"未开始"},"lcExtra":{"task":"Longest Increasing Subsequence","status":"未开始"},"plannedHours":3.75,"actualHours":"","note":""},{"date":"2026-10-20","week":"第8周","weekday":"周二","cs61b":{"task":"课：L39 Complexity and P=NP\n作业：复杂度概念卡片","check":"能区分 P / NP 的直觉含义，不要求证明","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"Multi-Head Attention from scratch","check":"实现 split heads / merge heads / mask broadcasting；验证 h=1 时与单头 attention 输出逻辑一致","status":"未开始"},"lcCore":{"task":"Maximum Product Subarray","status":"未开始"},"lcExtra":{"task":"Partition Equal Subset Sum","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-21","week":"第8周","weekday":"周三","cs61b":{"task":"课：L40 Summary, Fun\n作业：全课知识图谱草稿","check":"把 Lists→Trees→Hashing→Graphs→Sorting 串成一页图","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Unique Paths","status":"未开始"},"lcExtra":{"task":"Minimum Path Sum","status":"未开始"},"plannedHours":2.5,"actualHours":"","note":""},{"date":"2026-10-22","week":"第8周","weekday":"周四","cs61b":{"task":"课：CS61B 核心实现日 1\n作业：Project 3A World Generation：读 spec + setup（Stretch）","check":"从空文件实现简化版 ArrayDeque API","status":"未开始"},"cs229":{"task":"L20 Model-Based RL & Value Function Approximator","check":"对比 model-based / model-free；理解 value function approximator","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Longest Palindromic Substring","status":"未开始"},"lcExtra":{"task":"Longest Common Subsequence","status":"未开始"},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-23","week":"第8周","weekday":"周五","cs61b":{"task":"课：CS61B 核心实现日 2\n作业：Project 3A：milestone（Stretch）","check":"从空文件实现简化版 HashMap put/get","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Edit Distance","status":"未开始"},"lcExtra":{"task":"Longest Valid Parentheses","status":"未开始"},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-10-24","week":"第8周","weekday":"周六","cs61b":{"task":"课：CS61B 核心实现日 3\n作业：Project 3A：checkpoint；Lab 10 Tetris（可选）","check":"从空文件写 MinHeap + BFS 模板","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"Reverse Nodes in k-Group；Sliding Window Maximum","status":"未开始"},"lcExtra":{"task":"Find the Duplicate Number","status":"未开始"},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-10-25","week":"第8周","weekday":"周日","cs61b":{"task":"课：轻量复盘\n作业：Project 3A 可选 buffer；原课 HW4（可选）","check":"检查 CS61B 核心实现薄弱点","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"TransformerBlock：Pre-Norm + MHA + FFN + Residual","check":"实现 LN→MHA→residual→LN→FFN→residual；包含 GELU/Dropout；通过 batch/seq/hidden shape test","status":"未开始"},"lcCore":{"task":"重做本周最卡的 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-10-26","week":"第9周","weekday":"周一","cs61b":{"task":"课：总复盘 1：Lists / Inheritance / Asymptotics\n作业：整理 1 页速查表","check":"不看资料讲清 linked list、array deque、polymorphism、Big-O","status":"未开始"},"cs229":{"task":"复盘 L4–L7：GLM / GDA / Naive Bayes / Kernels","check":"闭卷口述 20 分钟 + 写 5 个面试式问答","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"错题二刷：哈希/双指针各 1 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":3.5,"actualHours":"","note":""},{"date":"2026-10-27","week":"第9周","weekday":"周二","cs61b":{"task":"课：总复盘 2：BST / Hashing / Heap\n作业：手写 3 个简化实现","check":"独立写 BST insert/search、HashMap put/get、heap swim/sink","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"Mixed Precision + Gradient Accumulation + Gradient Clipping","check":"使用 autocast/GradScaler（有 CUDA 时）；实现 accumulation；记录 grad norm 并 clip；解释 effective batch size","status":"未开始"},"lcCore":{"task":"错题二刷：Tree 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-28","week":"第9周","weekday":"周三","cs61b":{"task":"课：总复盘 3：Graphs\n作业：白板实现 BFS / DFS / Dijkstra / topo sort","check":"4 个模板一次写对","status":"未开始"},"cs229":{"task":"复盘 L8–L13：NN / Bias-Variance / Model Selection / EM","check":"画一张知识图；手推 backprop 与 EM 的关键步骤","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"错题二刷：Graph 2 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":4,"actualHours":"","note":""},{"date":"2026-10-29","week":"第9周","weekday":"周四","cs61b":{"task":"课：总复盘 4：Sorting / Tries\n作业：写排序对比表 + Trie","check":"会解释 quick/merge/heap/radix 的取舍","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"错题二刷：Binary Search / Heap 各 1 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":2.5,"actualHours":"","note":""},{"date":"2026-10-30","week":"第9周","weekday":"周五","cs61b":{"task":"课：模拟 coding day\n作业：90 分钟闭卷：ArrayDeque + HashMap/Heap 任选一；之后复盘","check":"记录卡住点和 bug 类型","status":"未开始"},"cs229":{"task":"复盘 L14–L20：PCA / ICA / SSL / RL","check":"总结 1 页 + 10 个自测问题；标出仍不熟的 3 点","status":"未开始"},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"错题二刷：Backtracking / DP 各 1 题","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":4.5,"actualHours":"","note":""},{"date":"2026-10-31","week":"第9周","weekday":"周六","cs61b":{"task":"课：可选大型项目日\n作业：Project 3B Interactivity + Ambition（Stretch）或继续 Project 3A","check":"如果不做 Project 3，则用这天补所有缺口","status":"未开始"},"cs229":{"task":"","check":"","status":""},"coding":{"task":"","check":"","status":""},"lcCore":{"task":"难题挑战：Trapping Rain Water；Largest Rectangle in Histogram","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":3,"actualHours":"","note":""},{"date":"2026-11-01","week":"第9周","weekday":"周日","cs61b":{"task":"课：阶段验收\n作业：整理 GitHub / 笔记 / 错题清单；制定下一阶段","check":"验收：核心 lecture 完成、至少 2 个 project、数据结构模板能独立写","status":"未开始"},"cs229":{"task":"阶段验收","check":"验收：L4–L18 + L20 全部看完；L19 为课程表中的 No Lecture；3 次复盘完成","status":"未开始"},"coding":{"task":"整合成可复用 ML/MLE mini repo","check":"至少包含 config、seed、logger、Trainer、checkpoint/resume、evaluate、inference、README；能用一条命令训练并从 checkpoint 继续","status":"未开始"},"lcCore":{"task":"高频错题 5 题限时复写","status":"未开始"},"lcExtra":{"task":"","status":""},"plannedHours":5.5,"actualHours":"","note":""}];
+const STORAGE_KEY = "ml_mle_9week_dashboard_v1";
+const statusOptions = ["未开始","进行中","已完成","未完成"];
+const PLAN_START = PLAN[0].date, PLAN_END = PLAN[PLAN.length-1].date;
+const byDate = Object.fromEntries(PLAN.map(x=>[x.date,x]));
+const $ = s=>document.querySelector(s);
+
+function addDays(iso,n){ const d=new Date(iso+"T00:00:00"); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function daysBetween(a,b){ return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000); }
+function isoToday(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function dateCN(iso){ const d=new Date(iso+"T00:00:00"); return `${d.getMonth()+1}月${d.getDate()}日`; }
+function longDateCN(iso){ const d=new Date(iso+"T00:00:00"), wk=["周日","周一","周二","周三","周四","周五","周六"][d.getDay()]; return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · ${wk}`; }
+function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+function buildPersistentWindows(key){
+  const points=PLAN.filter(d=>d[key] && d[key].task).map(d=>({sourceDate:d.date,data:d[key]}));
+  return points.map((p,i)=>({
+    id:`${key}:${p.sourceDate}`, key, sourceDate:p.sourceDate,
+    start:(i===0 && p.sourceDate>PLAN_START)?PLAN_START:p.sourceDate,
+    end:i<points.length-1?addDays(points[i+1].sourceDate,-1):PLAN_END,
+    task:p.data.task, check:p.data.check||"", initial:p.data.status||"未开始"
+  }));
+}
+const PERSISTENT={cs229:buildPersistentWindows("cs229"), coding:buildPersistentWindows("coding")};
+function persistentForDate(key,date){ return PERSISTENT[key].find(w=>w.start<=date && date<=w.end) || null; }
+
+
+function loadStore(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e){ return {}; } }
+let store=loadStore();
+
+let sb=null, currentUser=null, cloudEnabled=false, cloudLoaded=false, cloudSaveTimer=null, lastCloudUpdatedAt=null;
+
+function configured(){
+  const c=window.STUDY_APP_CONFIG||{};
+  return !!(c.supabaseUrl && c.supabaseKey &&
+    !String(c.supabaseUrl).includes("YOUR_") &&
+    !String(c.supabaseKey).includes("YOUR_"));
+}
+function setSyncStatus(kind,text){
+  const dot=$("#syncDot"), label=$("#syncText");
+  if(dot){ dot.className="sync-dot"+(kind?(" "+kind):""); }
+  if(label) label.textContent=text;
+}
+function showAuth(message="",kind=""){
+  $("#authOverlay").style.display="flex";
+  $("#authMsg").textContent=message;
+  $("#authMsg").className="auth-msg"+(kind?(" "+kind):"");
+  $("#setupBox").style.display=configured()?"none":"block";
+  $("#authForm").style.display=configured()?"block":"none";
+}
+function hideAuth(){ $("#authOverlay").style.display="none"; }
+function updateUserUI(){
+  $("#userEmail").textContent=currentUser?.email||"";
+  $("#logoutBtn").style.display=currentUser?"inline-block":"none";
+  $("#loginBtn").style.display=currentUser?"none":"inline-block";
+}
+function hasMeaningfulLocalProgress(){
+  return Object.entries(store).some(([k,v])=>{
+    if(k==="_persistent") return v && Object.keys(v).length>0;
+    return v && (
+      v.checkedIn ||
+      (v.statuses && Object.keys(v.statuses).length>0) ||
+      (v.actualHours!==undefined && String(v.actualHours).trim()!=="") ||
+      (v.note && String(v.note).trim()!=="")
+    );
+  });
+}
+async function initCloud(){
+  if(!configured()){
+    cloudEnabled=false;
+    setSyncStatus("err","未配置云同步 · 当前使用本地缓存");
+    updateUserUI();
+    showAuth();
+    return;
+  }
+  try{
+    const c=window.STUDY_APP_CONFIG;
+    sb=window.supabase.createClient(c.supabaseUrl,c.supabaseKey,{
+      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+    });
+    cloudEnabled=true;
+    setSyncStatus("busy","正在检查登录状态…");
+    const {data:{session},error}=await sb.auth.getSession();
+    if(error) throw error;
+    currentUser=session?.user||null;
+    updateUserUI();
+    if(currentUser){
+      await loadCloudState();
+      hideAuth();
+    }else{
+      setSyncStatus("","未登录 · 进度仅保存在本机");
+      showAuth();
+    }
+    sb.auth.onAuthStateChange(async (event,session)=>{
+      currentUser=session?.user||null;
+      updateUserUI();
+      if(currentUser){
+        await loadCloudState();
+        hideAuth();
+      }else{
+        cloudLoaded=false;
+        setSyncStatus("","未登录 · 进度仅保存在本机");
+      }
+    });
+  }catch(err){
+    console.error(err);
+    setSyncStatus("err","云同步初始化失败");
+    showAuth("初始化失败："+(err.message||String(err)),"error");
+  }
+}
+async function loadCloudState(){
+  if(!sb||!currentUser) return;
+  setSyncStatus("busy","正在从云端同步…");
+  try{
+    const {data,error}=await sb.from("study_state")
+      .select("state, updated_at")
+      .eq("user_id",currentUser.id)
+      .maybeSingle();
+    if(error) throw error;
+
+    if(data && data.state && Object.keys(data.state).length){
+      store=data.state;
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(store));
+      lastCloudUpdatedAt=data.updated_at||null;
+      cloudLoaded=true;
+      setSyncStatus("ok","已同步 · 云端进度已加载");
+      renderAllViews();
+    }else{
+      cloudLoaded=true;
+      if(hasMeaningfulLocalProgress()){
+        await saveCloudNow();
+        setSyncStatus("ok","已同步 · 已把本机进度上传到云端");
+      }else{
+        store={};
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(store));
+        await saveCloudNow();
+        setSyncStatus("ok","已同步 · 云端学习档案已创建");
+        renderAllViews();
+      }
+    }
+  }catch(err){
+    console.error(err);
+    setSyncStatus("err","读取云端失败 · 继续使用本地缓存");
+  }
+}
+function saveStore(){
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(store));
+  if(sb&&currentUser&&cloudLoaded){
+    setSyncStatus("busy","正在保存…");
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer=setTimeout(()=>saveCloudNow(),450);
+  }
+}
+async function saveCloudNow(){
+  if(!sb||!currentUser) return;
+  try{
+    const now=new Date().toISOString();
+    const {error}=await sb.from("study_state").upsert({
+      user_id:currentUser.id,
+      state:store,
+      updated_at:now
+    },{onConflict:"user_id"});
+    if(error) throw error;
+    lastCloudUpdatedAt=now;
+    setSyncStatus("ok","已同步 · "+new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}));
+  }catch(err){
+    console.error(err);
+    setSyncStatus("err","保存云端失败 · 本机缓存已保留");
+  }
+}
+async function refreshFromCloudIfNewer(){
+  if(!sb||!currentUser||!cloudLoaded) return;
+  try{
+    const {data,error}=await sb.from("study_state")
+      .select("state, updated_at")
+      .eq("user_id",currentUser.id)
+      .maybeSingle();
+    if(error||!data) return;
+    if(!lastCloudUpdatedAt || (data.updated_at && data.updated_at>lastCloudUpdatedAt)){
+      store=data.state||{};
+      lastCloudUpdatedAt=data.updated_at||lastCloudUpdatedAt;
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(store));
+      setSyncStatus("ok","已同步 · 检测到其他设备更新");
+      renderAllViews();
+    }
+  }catch(err){ console.warn("refreshFromCloudIfNewer",err); }
+}
+async function signIn(){
+  const email=$("#authEmail").value.trim(), password=$("#authPassword").value;
+  if(!email||!password){ showAuth("请输入邮箱和密码。","error"); return; }
+  $("#authMsg").textContent="正在登录…"; $("#authMsg").className="auth-msg";
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error) showAuth(error.message,"error");
+}
+async function signUp(){
+  const email=$("#authEmail").value.trim(), password=$("#authPassword").value;
+  if(!email||!password){ showAuth("请输入邮箱和密码。","error"); return; }
+  if(password.length<6){ showAuth("密码至少需要 6 个字符。","error"); return; }
+  $("#authMsg").textContent="正在创建账号…"; $("#authMsg").className="auth-msg";
+  const {data,error}=await sb.auth.signUp({email,password});
+  if(error){ showAuth(error.message,"error"); return; }
+  if(data.session){
+    showAuth("账号创建成功，正在登录…","ok");
+  }else{
+    showAuth("账号已创建。若项目开启邮箱验证，请先去邮箱点击确认链接，然后回来登录。","ok");
+  }
+}
+async function signOut(){
+  if(sb) await sb.auth.signOut();
+  currentUser=null; cloudLoaded=false; updateUserUI();
+  setSyncStatus("","已退出 · 当前仅使用本机缓存");
+  showAuth("你已退出登录。","ok");
+}
+
+function getDayState(date){ if(!store[date]) store[date]={statuses:{},actualHours:"",note:""}; if(!store[date].statuses) store[date].statuses={}; return store[date]; }
+function getPersistentStore(){ if(!store._persistent) store._persistent={}; return store._persistent; }
+function markCheckin(date){ if(date<PLAN_START||date>PLAN_END) return; const ds=getDayState(date); ds.checkedIn=true; ds.touchedAt=new Date().toISOString(); }
+function dailyStatus(date,key,initial){ const ds=getDayState(date); return ds.statuses[key] || initial || "未开始"; }
+function persistentStatus(w){ return getPersistentStore()[w.id] || store[w.sourceDate]?.statuses?.[w.key] || w.initial || "未开始"; }
+function taskStatus(date,t){ return t.scope==="persistent"?persistentStatus(t.window):dailyStatus(date,t.key,t.initial); }
+function setTaskStatus(date,t,value){
+  if(t.scope==="persistent") getPersistentStore()[t.window.id]=value; else getDayState(date).statuses[t.key]=value;
+  markCheckin(date); saveStore(); renderAllViews();
+}
+function cardClass(status){ return status==="已完成"?"done":status==="进行中"?"inprogress":status==="未完成"?"failed":""; }
+
+
+function activeTasks(day){
+  const arr=[];
+  if(day.cs61b.task) arr.push({key:"cs61b",title:"CS61B",label:"课程 + Lab / Project",task:day.cs61b.task,check:day.cs61b.check,initial:day.cs61b.status,scope:"daily"});
+  const c229=persistentForDate("cs229",day.date); if(c229) arr.push({key:"cs229",title:"CS229",label:"ML 理论 · 持续任务",task:c229.task,check:c229.check,initial:c229.initial,scope:"persistent",window:c229});
+  const code=persistentForDate("coding",day.date); if(code) arr.push({key:"coding",title:"ML / PyTorch",label:"Coding 实战 · 持续任务",task:code.task,check:code.check,initial:code.initial,scope:"persistent",window:code});
+  if(day.lcCore.task) arr.push({key:"lcCore",title:"LeetCode 必做",label:"Hot100",task:day.lcCore.task,check:"完成当天题目；优先独立写出并记录复杂度。",initial:day.lcCore.status,scope:"daily"});
+  if(day.lcExtra.task) arr.push({key:"lcExtra",title:"LeetCode 加做",label:"Hot100 加练",task:day.lcExtra.task,check:"有余力再做；科研/主线任务较重时允许顺延。",initial:day.lcExtra.status,scope:"daily"});
+  return arr;
+}
+function dueTasks(day){
+  return activeTasks(day).filter(t=>t.key!=="lcExtra" && (t.scope==="daily" || t.window.end===day.date));
+}
+function completion(day){ const tasks=dueTasks(day), done=tasks.filter(t=>taskStatus(day.date,t)==="已完成").length; return {done,total:tasks.length,pct:tasks.length?Math.round(done/tasks.length*100):100}; }
+
+function windowText(w,date,status){
+  const range=`${dateCN(w.start)}–${dateCN(w.end)}`;
+  if(status==="已完成") return `<span class="window-chip">持续任务</span><span>建议周期 ${range} · 已完成</span>`;
+  const left=Math.max(0,daysBetween(date,w.end));
+  return `<span class="window-chip">持续任务</span><span>建议周期 ${range} · ${date===w.end?"今天截止":`还剩 ${left} 天`}</span>`;
+}
+
+function isCheckedIn(date){
+  const ds=store[date]; if(!ds) return false;
+  return !!(ds.checkedIn || (ds.actualHours!==undefined && String(ds.actualHours).trim()!=="" && Number(ds.actualHours)>0) || (ds.note && String(ds.note).trim()) || (ds.statuses && Object.keys(ds.statuses).length));
+}
+function streakInfo(){
+  const today=isoToday(); if(today<PLAN_START) return {current:0,longest:0};
+  const end=today>PLAN_END?PLAN_END:today;
+  const dates=PLAN.map(d=>d.date).filter(d=>d<=end);
+  let longest=0,run=0;
+  dates.forEach(d=>{ if(isCheckedIn(d)){run++;longest=Math.max(longest,run);} else run=0; });
+  let anchor=end;
+  if(!isCheckedIn(anchor) && anchor===today) anchor=addDays(anchor,-1);
+  let current=0,cur=anchor;
+  while(cur>=PLAN_START && isCheckedIn(cur)){ current++; cur=addDays(cur,-1); }
+  return {current,longest};
+}
+
+function overdueItems(){
+  const today=isoToday(); if(today<=PLAN_START) return [];
+  const items=[];
+  PLAN.forEach(d=>{
+    if(d.date>=today) return;
+    if(d.cs61b.task){ const t={key:"cs61b",scope:"daily",initial:d.cs61b.status}; if(dailyStatus(d.date,"cs61b",d.cs61b.status)!=="已完成") items.push({module:"CS61B",task:d.cs61b.task,due:d.date,scope:"daily",key:"cs61b",date:d.date,initial:d.cs61b.status}); }
+    if(d.lcCore.task){ if(dailyStatus(d.date,"lcCore",d.lcCore.status)!=="已完成") items.push({module:"LeetCode 必做",task:d.lcCore.task,due:d.date,scope:"daily",key:"lcCore",date:d.date,initial:d.lcCore.status}); }
+  });
+  [["CS229","cs229"],["ML / PyTorch","coding"]].forEach(([module,key])=>PERSISTENT[key].forEach(w=>{
+    if(w.end<today && persistentStatus(w)!=="已完成") items.push({module,task:w.task,due:w.end,scope:"persistent",key,date:w.sourceDate,window:w,initial:w.initial});
+  }));
+  return items.sort((a,b)=>a.due.localeCompare(b.due));
+}
+
+let selectedDate=isoToday(); if(selectedDate<PLAN_START) selectedDate=PLAN_START; if(selectedDate>PLAN_END) selectedDate=PLAN_END;
+
+function renderToday(){
+  const day=byDate[selectedDate]; if(!day) return;
+  $("#datePicker").value=selectedDate; $("#weekLabel").textContent=`${day.week} · ${day.weekday}`; $("#heroDate").textContent=longDateCN(day.date);
+  $("#heroSub").textContent="CS229 与 ML/PyTorch 采用持续时间窗：每天都会提醒当前该推进的 Lecture / Coding，但只在时间窗最后一天计入“到期任务”。";
+  const comp=completion(day); $("#ring").style.setProperty("--p",comp.pct); $("#progressNum").textContent=comp.pct+"%"; $("#progressText").textContent=`${comp.done} / ${comp.total} 项完成`; $("#planHoursPill").textContent=`计划 ${day.plannedHours}h`; $("#remainPill").textContent=`今日到期剩余 ${comp.total-comp.done} 项`; $("#plannedHours").value=(day.plannedHours||0)+" h";
+  const ds=getDayState(day.date); $("#actualHours").value=ds.actualHours ?? ""; $("#dailyNote").value=(ds.note!==undefined && ds.note!=="")?ds.note:(day.note??"");
+  const si=streakInfo(); $("#streakNum").textContent=si.current; $("#streakSub").textContent=`最长连续 ${si.longest} 天`;
+  const grid=$("#taskGrid"); grid.innerHTML="";
+  activeTasks(day).forEach(t=>{
+    const st=taskStatus(day.date,t), card=document.createElement("article"); card.className="task-card "+cardClass(st)+(t.scope==="persistent"?" persistent":"");
+    card.innerHTML=`<div class="task-head"><div><div class="task-title">${escapeHtml(t.title)}</div><div class="task-label">${escapeHtml(t.label)}</div></div><select class="status">${statusOptions.map(x=>`<option ${x===st?"selected":""}>${x}</option>`).join("")}</select></div>${t.scope==="persistent"?`<div class="window-note">${windowText(t.window,day.date,st)}</div>`:""}<div class="task-body">${escapeHtml(t.task)}</div><div class="accept"><b>${t.scope==="persistent"?"周期验收":"今日验收"}：</b> ${escapeHtml(t.check||"完成即可")}</div>`;
+    card.querySelector("select").addEventListener("change",e=>setTaskStatus(day.date,t,e.target.value)); grid.appendChild(card);
+  });
+  const realToday=isoToday(),notice=$("#notice"); if(realToday<PLAN_START){ const diff=daysBetween(realToday,PLAN_START); notice.style.display="block"; notice.textContent=`计划将在 ${dateCN(PLAN_START)} 开始，距离开始还有 ${diff} 天。当前正在预览第一天。`; } else if(realToday>PLAN_END){ notice.style.display="block"; notice.textContent="9 周计划已结束，当前显示最后一天。"; } else notice.style.display="none";
+}
+
+function weekRows(day){ return PLAN.filter(x=>x.week===day.week); }
+function weekTaskEntities(week){
+  const rows=PLAN.filter(d=>d.week===week), arr=[];
+  rows.forEach(d=>{ if(d.cs61b.task) arr.push({module:"CS61B",done:dailyStatus(d.date,"cs61b",d.cs61b.status)==="已完成"}); if(d.lcCore.task) arr.push({module:"LeetCode",done:dailyStatus(d.date,"lcCore",d.lcCore.status)==="已完成"}); });
+  [["CS229","cs229"],["ML/PyTorch","coding"]].forEach(([module,key])=>PERSISTENT[key].forEach(w=>{ const dueDay=byDate[w.end]; if(dueDay && dueDay.week===week) arr.push({module,done:persistentStatus(w)==="已完成"}); }));
+  return arr;
+}
+function renderWeek(){
+  const day=byDate[selectedDate]; if(!day) return; const rows=weekRows(day), entities=weekTaskEntities(day.week),total=entities.length,done=entities.filter(x=>x.done).length;
+  $("#weekTitle").textContent=day.week; $("#weekProgress").textContent=`${done} / ${total} 个到期核心任务完成 · ${total?Math.round(done/total*100):100}%`;
+  const box=$("#weekDays"); box.innerHTML=""; rows.forEach(d=>{ const c=completion(d),el=document.createElement("div"); el.className="day-mini"+(d.date===selectedDate?" active":""); el.innerHTML=`<div class="d">${dateCN(d.date)}</div><div class="w">${d.weekday} · ${d.plannedHours}h</div><div class="mini-bar"><span style="width:${c.pct}%"></span></div><div style="margin-top:7px;font-size:12px;color:var(--muted)">${c.done}/${c.total} 今日到期</div>`; el.onclick=()=>{selectedDate=d.date;showView("today");}; box.appendChild(el); });
+}
+function renderAll(){
+  const box=$("#allGrid"); box.innerHTML=""; PLAN.forEach(d=>{ const c=completion(d),el=document.createElement("div"); el.className="all-day"; const summary=activeTasks(d).filter(t=>t.key!=="lcExtra").map(t=>String(t.task).split("\n")[0]).join(" · "); el.innerHTML=`<div class="date">${dateCN(d.date)}</div><div>${d.week} · ${d.weekday}</div><div class="summary">${escapeHtml(summary)}</div><div class="badge">${c.pct}%</div>`; el.onclick=()=>{selectedDate=d.date;showView("today");}; box.appendChild(el); });
+}
+function backlogStatus(item){ return item.scope==="persistent"?persistentStatus(item.window):dailyStatus(item.date,item.key,item.initial); }
+function setBacklogStatus(item,value){ if(item.scope==="persistent") getPersistentStore()[item.window.id]=value; else getDayState(item.date).statuses[item.key]=value; const t=isoToday(); if(t>=PLAN_START&&t<=PLAN_END) markCheckin(t); saveStore(); renderAllViews(); }
+function renderBacklog(){
+  const items=overdueItems(); $("#backlogCount").textContent=items.length; $("#backlogSummary").textContent=`${items.length} 项待清理`; $("#kpiBacklog").textContent=items.length+" 项"; const box=$("#backlogItems"); box.innerHTML="";
+  if(!items.length){ box.innerHTML=`<div class="backlog-empty">🎉 当前没有逾期任务。保持这个节奏。</div>`; return; }
+  items.forEach(item=>{ const st=backlogStatus(item),el=document.createElement("div"); el.className="backlog-item"; const overdue=Math.max(1,daysBetween(item.due,isoToday())); el.innerHTML=`<div><div class="module">${escapeHtml(item.module)}</div><div class="due">逾期 ${overdue} 天 · 截止 ${dateCN(item.due)}</div></div><div class="task">${escapeHtml(String(item.task).split("\n")[0])}</div><select class="status">${statusOptions.map(x=>`<option ${x===st?"selected":""}>${x}</option>`).join("")}</select><button class="btn">查看</button>`; el.querySelector("select").onchange=e=>setBacklogStatus(item,e.target.value); el.querySelector("button").onclick=()=>{ selectedDate=item.scope==="daily"?item.date:item.window.end; showView("today"); }; box.appendChild(el); });
+}
+function allWeeks(){ return [...new Set(PLAN.map(d=>d.week))]; }
+function weeklyStats(week){
+  const rows=PLAN.filter(d=>d.week===week), entities=weekTaskEntities(week), done=entities.filter(x=>x.done).length,total=entities.length;
+  const planned=rows.reduce((a,d)=>a+(Number(d.plannedHours)||0),0); const actual=rows.reduce((a,d)=>a+(Number(store[d.date]?.actualHours)||0),0); const checked=rows.filter(d=>isCheckedIn(d.date)).length;
+  return {week,done,total,pct:total?Math.round(done/total*100):100,planned,actual,checked};
+}
+function renderStats(){
+  const si=streakInfo(), backlog=overdueItems(); $("#kpiStreak").textContent=si.current+" 天"; $("#kpiLongest").textContent=si.longest+" 天"; $("#kpiBacklog").textContent=backlog.length+" 项";
+  const totalActual=PLAN.reduce((a,d)=>a+(Number(store[d.date]?.actualHours)||0),0); $("#kpiHours").textContent=totalActual.toFixed(1).replace(/\.0$/,'')+" h";
+  const chart=$("#weekChart"); chart.innerHTML=""; allWeeks().map(weeklyStats).forEach(s=>{ const hourPct=s.planned?Math.min(100,Math.round(s.actual/s.planned*100)):0; const el=document.createElement("div"); el.className="chart-row"; el.innerHTML=`<div class="chart-label">${s.week}</div><div class="bar-stack"><div class="barline completion"><span style="width:${s.pct}%"></span></div><div class="barline hours"><span style="width:${hourPct}%"></span></div></div><div class="chart-meta">${s.done}/${s.total} · ${s.actual.toFixed(1)}/${s.planned.toFixed(1)}h<br>${s.checked}/${PLAN.filter(d=>d.week===s.week).length} 天打卡</div>`; chart.appendChild(el); });
+  const modules=["CS61B","CS229","ML/PyTorch","LeetCode"], entities=allWeeks().flatMap(weekTaskEntities), mg=$("#moduleGrid"); mg.innerHTML=""; modules.forEach(name=>{ const list=entities.filter(x=>x.module===name),done=list.filter(x=>x.done).length,total=list.length,pct=total?Math.round(done/total*100):0; const el=document.createElement("div"); el.className="module-box"; el.innerHTML=`<div class="name">${name}</div><div class="pct">${pct}%</div><div style="color:var(--muted);font-size:12px">${done} / ${total} 完成</div>`; mg.appendChild(el); });
+}
+function showView(name){
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.view===name));
+  [["today","#todayView"],["week","#weekView"],["backlog","#backlogView"],["stats","#statsView"],["all","#allView"]].forEach(([n,id])=>$(id).style.display=name===n?"block":"none");
+  if(name==="today") renderToday(); if(name==="week") renderWeek(); if(name==="backlog") renderBacklog(); if(name==="stats") renderStats(); if(name==="all") renderAll();
+}
+function renderAllViews(){ renderToday(); renderWeek(); renderAll(); renderBacklog(); renderStats(); }
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>showView(b.dataset.view));
+$("#datePicker").addEventListener("change",e=>{selectedDate=e.target.value;renderToday();renderWeek();});
+$("#todayBtn").onclick=()=>{let t=isoToday();selectedDate=t<PLAN_START?PLAN_START:t>PLAN_END?PLAN_END:t;showView("today");};
+$("#actualHours").addEventListener("input",e=>{const ds=getDayState(selectedDate);ds.actualHours=e.target.value;markCheckin(selectedDate);saveStore();renderStats();});
+$("#dailyNote").addEventListener("input",e=>{const ds=getDayState(selectedDate);ds.note=e.target.value;markCheckin(selectedDate);saveStore();renderStats();});
+$("#resetBtn").onclick=()=>{ if(confirm("只重置当前日期的每日任务状态、实际时长和备注？持续任务状态不会被重置。")){ delete store[selectedDate]; saveStore(); renderAllViews(); } };
+$("#exportBtn").onclick=()=>{ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),progress:store},null,2)],{type:"application/json"}); const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="study_progress.json";a.click();URL.revokeObjectURL(a.href); };
+
+$("#loginBtn").onclick=()=>showAuth();
+$("#logoutBtn").onclick=()=>signOut();
+$("#signInBtn").onclick=()=>signIn();
+$("#signUpBtn").onclick=()=>signUp();
+$("#localPreviewBtn").onclick=()=>hideAuth();
+$("#authPassword").addEventListener("keydown",e=>{if(e.key==="Enter"&&configured()) signIn();});
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) refreshFromCloudIfNewer(); });
+window.addEventListener("focus",()=>refreshFromCloudIfNewer());
+
+renderAllViews();
+initCloud();
+</script>
+</body>
+</html>
